@@ -7,17 +7,22 @@ template <class K, class V, class Hash = std::hash<K>>
 class insertion_ordered_map {
 private:
 
-    std::pair<K, V> tab[16] = new std::pair<K, V>[16];
+    size_t capacity = 16;
+    std::shared_ptr<std::pair<K, V>[]> map;
 
+    std::shared_ptr<field> begin;
+    
+ 
+    
 public:
 
     //konstruktor bezparametrowy - tworzy pusty słownik
     insertion_ordered_map() {
-        //TODO
+        map(
     };
     //konstruktor kopiujący z semantyką copy-on-write
     insertion_ordered_map(const insertion_ordered_map& other) {
-        //TODO
+        
     };
     //konstruktor przenoszący
     insertion_ordered_map(insertion_ordered_map &&other) {
@@ -50,22 +55,49 @@ public:
     //sprawdzanie czy słownik zawiera element
     bool contains(K const &k) const;
 
-    //doesn't work
-    class iterator {
 
-        iterator end();
+    class Iterator;
+
+    Iterator begin() {
+            return Iterator(begin);
+    }
+
+    Iterator end() {
+            return Iterator(end);
+    }
+
+    class Iterator {
+    private:
+        std::shared_ptr<field> currentField;
 
     public:
+       
+        Iterator() noexcept:
+            currentField(nullptr) {}
 
+        Iterator(const Iterator &iterator) noexcept:
+            currentField(iterator.currentField) {}
 
-        std::pair<V, K>* begin() {
-            return &tab[0];
-        }
-        std::pair<V, K>* end() {
-            return nullptr;
-        }
+        Iterator& operator++() { 
+            if (currentField) 
+                currentField = currnetField->next; 
+            return *this; 
+        } 
+
+        bool operator!=(const Iterator& iterator) { 
+            return currentField != iterator.currentField; 
+        } 
+
+        bool operator==(const Iterator& iterator) { 
+            return currentField == iterator.currentField; 
+        } 
+
+        const K& operator*() {
+            return currentField->key;
+        } 
 
     };
+
 
 };
 
