@@ -2,26 +2,47 @@
 #define INSERTION_ORDERED_MAP_INSERTION_ORDERED_MAP_H
 
 #include <iostream>
+#include <memory>
+
+using std::shared_ptr;
 
 template <class K, class V, class Hash = std::hash<K>>
 class insertion_ordered_map {
 private:
 
-    std::pair<K, V> tab[16] = new std::pair<K, V>[16];
+    struct field {
+        K key;
+        V value;
+        shared_ptr<field> before;
+        shared_ptr<field> after;
+        shared_ptr<field> prev;
+        shared_ptr<field> next;
+    };
+
+    size_t capacity = 16;
+    shared_ptr<field[]> map;
+    shared_ptr<field> begin;
+    shared_ptr<field> end;
+
 
 public:
 
     //konstruktor bezparametrowy - tworzy pusty słownik
     insertion_ordered_map() {
-        //TODO
+        map = std::make_shared<field[capacity]>(nullptr);
     };
+
     //konstruktor kopiujący z semantyką copy-on-write
     insertion_ordered_map(const insertion_ordered_map& other) {
-        //TODO
+        this->capacity = other.capacity;
+        this->map = other.map;
+        this->begin = other.begin;
+        this->end = other.end;
     };
+
     //konstruktor przenoszący
-    insertion_ordered_map(insertion_ordered_map &&other) {
-        //TODO
+    insertion_ordered_map(insertion_ordered_map &&other) noexcept {
+        this = std::move(other);
     }
     //operator przypisania, przujmujący argument przez wartość
     insertion_ordered_map &operator=(insertion_ordered_map other) {
@@ -50,22 +71,52 @@ public:
     //sprawdzanie czy słownik zawiera element
     bool contains(K const &k) const;
 
-    //doesn't work
-    class iterator {
 
-        iterator end();
+    class Iterator;
+
+    Iterator begin() {
+        return Iterator(begin);
+    }
+
+    Iterator end() {
+        return Iterator(nullptr);
+    }
+
+    class Iterator {
+    private:
+        std::shared_ptr<field> current_field;
 
     public:
 
+        Iterator() noexcept:
+                current_field(nullptr) {}
 
-        std::pair<V, K>* begin() {
-            return &tab[0];
+        Iterator(const Iterator &iterator) noexcept:
+                current_field(iterator.current_field) {}
+
+        Iterator(const std::shared_ptr<field> field_ptr) noexcept:
+                current_field(field_ptr) {}
+
+        Iterator& operator++() {
+            if (current_field)
+                current_field = currnet_field->next;
+            return *this;
         }
-        std::pair<V, K>* end() {
-            return nullptr;
+
+        bool operator!=(const Iterator& iterator) {
+            return current_field != iterator.current_field;
+        }
+
+        bool operator==(const Iterator& iterator) {
+            return current_field == iterator.current_field;
+        }
+
+        const K& operator*() {
+            return current_field->key;
         }
 
     };
+
 
 };
 
