@@ -59,41 +59,44 @@ public:
     class Iterator;
 
     Iterator begin() {
-            return Iterator(begin);
+        return Iterator(begin);
     }
 
     Iterator end() {
-            return Iterator(end);
+        return Iterator(nullptr);
     }
 
     class Iterator {
     private:
-        std::shared_ptr<field> currentField;
+        std::shared_ptr<field> current_field;
 
     public:
        
         Iterator() noexcept:
-            currentField(nullptr) {}
+            current_field(nullptr) {}
 
         Iterator(const Iterator &iterator) noexcept:
-            currentField(iterator.currentField) {}
+            current_field(iterator.current_field) {}
+
+        Iterator(const std::shared_ptr<field> field_ptr) noexcept:
+            current_field(field_ptr) {}
 
         Iterator& operator++() { 
-            if (currentField) 
-                currentField = currnetField->next; 
+            if (current_field) 
+                current_field = currnet_field->next; 
             return *this; 
         } 
 
         bool operator!=(const Iterator& iterator) { 
-            return currentField != iterator.currentField; 
+            return current_field != iterator.current_field; 
         } 
 
         bool operator==(const Iterator& iterator) { 
-            return currentField == iterator.currentField; 
+            return current_field == iterator.current_field; 
         } 
 
         const K& operator*() {
-            return currentField->key;
+            return current_field->key;
         } 
 
     };
