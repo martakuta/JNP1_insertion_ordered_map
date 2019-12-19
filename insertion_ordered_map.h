@@ -24,7 +24,6 @@ private:
     shared_ptr<field> begin;
     shared_ptr<field> end;
 
-
 public:
 
     //konstruktor bezparametrowy - tworzy pusty słownik
