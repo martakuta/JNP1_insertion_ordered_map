@@ -1,6 +1,7 @@
 #include "insertion_ordered_map.h"
 #include <cassert>
 #include <vector>
+#include <functional>
 
 namespace {
   auto f(insertion_ordered_map<int, int> q)
@@ -11,6 +12,10 @@ namespace {
 
 int main()
 {
+    insertion_ordered_map<int, int> iom = f({});
+    assert(iom.insert(1,1));
+
+    /*
   int keys[] = {3, 1, 2};
 
   insertion_ordered_map<int, int> iom1 = f({});
@@ -77,6 +82,6 @@ int main()
   for (int i = 0; i < 1000000; i++) {
     vec.push_back(iom1);  // Wszystkie obiekty w vec współdzielą dane.
   }
-
+*/
   return 0;
 }

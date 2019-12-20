@@ -64,8 +64,6 @@ private:
         last = field_ptr;
     }
 
-    
-
     void extend_map() {
         f_ptr act = first, help = first;
         first = nullptr;
@@ -170,12 +168,11 @@ public:
         return true;    
     }
     
-    
     //usuwanie ze słownika
     void erase(K const &k) {
         f_ptr to_remove = find(k);
         if (to_remove == nullptr) {
-            //Podnieś wyjątek TODO
+            //Podnieś wyjątek "lookup error" TODO
         }
         
         size_t hash = Hash{}(k) % capacity;
@@ -200,6 +197,7 @@ public:
         if (prev != nullptr)
             prev->next = next;
         //Czy teraz inteligętny wskaźnik zwolni pamięć na ten obiekt?
+        //mam nadzieję, ale to chyba valgrind nam na to dopiero odpowie
     }
           
     /* 
@@ -316,5 +314,3 @@ bool insertion_ordered_map<K, V, Hash>::contains(K const &k) const {
 } */
 
 #endif //INSERTION_ORDERED_MAP_INSERTION_ORDERED_MAP_H
-
-
