@@ -3,26 +3,58 @@
 
 #include <iostream>
 #include <memory>
-
-using std::shared_ptr;
-
+  
 template <class K, class V, class Hash = std::hash<K>>
 class insertion_ordered_map {
 private:
+     
+    struct field;
+    using f_ptr = std::shared_ptr<field>;
 
     struct field {
         K key;
         V value;
-        shared_ptr<field> before;
-        shared_ptr<field> after;
-        shared_ptr<field> prev;
-        shared_ptr<field> next;
+        f_ptr before;
+        f_ptr after;
+        f_ptr prev;
+        f_ptr next;
     };
 
     size_t capacity = 16;
-    shared_ptr<field[]> map;
-    shared_ptr<field> begin;
-    shared_ptr<field> end;
+    std::shared_ptr<field[]> map;
+    f_ptr first = nullptr;
+    f_ptr last = nullptr;
+
+    //Daje wskaźnik pole przechowujące wartość z kluczek k lub null jeśli taki
+    //klucz nie jest przechowywany
+    f_ptr find(K const &k) const {
+        size_t hash = Hash(k) % capacity;
+
+        f_ptr current_ptr = map[hash];
+        while(current_ptr) {
+            if (current_ptr->key == k)
+                return current_ptr;
+            current_ptr = current_ptr->after;
+        }
+    }
+
+    //przesuwa pole na które wskazuje wskaźnik na koniec listy iteratora
+    void move_to_end(f_ptr field_ptr) {
+        if (field_ptr->next == nullptr)
+            return;
+        f_ptr prev = field_ptr->prev;
+        f_ptr next = field_ptr->next;
+        
+        if (prev != nullptr)
+            prev->next = next;
+        next->prev = prev;
+
+        last->next = field_ptr;
+        field_ptr->next = nullptr;
+        field_ptr->prev = last;
+
+        last = field_ptr;
+    }    
 
 public:
 
@@ -35,22 +67,52 @@ public:
     insertion_ordered_map(const insertion_ordered_map& other) {
         this->capacity = other.capacity;
         this->map = other.map;
-        this->begin = other.begin;
-        this->end = other.end;
+        this->first = other.first;
+        this->last = other.last;
     };
 
     //konstruktor przenoszący
     insertion_ordered_map(insertion_ordered_map &&other) noexcept {
         this = std::move(other);
     }
-    //operator przypisania, przujmujący argument przez wartość
+   /* //operator przypisania, przujmujący argument przez wartość
     insertion_ordered_map &operator=(insertion_ordered_map other) {
         //TODO
-    }
+    }*/
+
+    
     //wstawianie do słownika
-    bool insert(K const &k, V const &v);
-    //usuwanie ze słownika
-    void erase(K const &k);
+    bool insert(K const &k, V const &v) {
+          
+        f_ptr found = find(k);
+        if(found != nullptr) {
+            move_to_end(found);
+            return false;
+        }
+
+        size_t hash = Hash(k) % capacity;
+        f_ptr field_ptr = std::make_shared<field>();
+        
+        field_ptr->key = k;
+        field_ptr->value = v;
+        field_ptr->after = map[hash];
+        field_ptr->before = nullptr;
+        field_ptr->next = nullptr;
+        field_ptr->prev = last;
+    
+        last->next = field_ptr;
+        map[hash]->before = field_ptr;
+
+        last = field_ptr;
+        if(first == nullptr)
+            first = field_ptr;
+
+        map[hash] = field_ptr;
+        return true;    
+    }
+    
+    /*
+    void erase(K const &k) 
     //scalanie słowników
     void merge(insertion_ordered_map const &other);
     //zwracanie referencji na wartość pod kluczem
@@ -69,12 +131,12 @@ public:
     void clear();
     //sprawdzanie czy słownik zawiera element
     bool contains(K const &k) const;
-
+    */
 
     class Iterator;
 
     Iterator begin() {
-        return Iterator(begin);
+        return Iterator(first);
     }
 
     Iterator end() {
@@ -96,11 +158,12 @@ public:
         Iterator(const std::shared_ptr<field> field_ptr) noexcept:
                 current_field(field_ptr) {}
 
-        Iterator& operator++() {
-            if (current_field)
-                current_field = currnet_field->next;
-            return *this;
-        }
+        Iterator& operator++() { 
+            if (current_field) 
+                current_field = current_field->next; 
+            return *this; 
+        } 
+
 
         bool operator!=(const Iterator& iterator) {
             return current_field != iterator.current_field;
@@ -119,7 +182,7 @@ public:
 
 };
 
-
+/*
 template <class K, class V, class Hash>
 bool insertion_ordered_map<K, V, Hash>::insert(K const& k, V const& v) {
     //TODO
@@ -158,6 +221,8 @@ void insertion_ordered_map<K, V, Hash>::clear() {
 template <class K, class V, class Hash>
 bool insertion_ordered_map<K, V, Hash>::contains(K const &k) const {
     //TODO
-}
+} */
+
+int main() {}
 
 #endif //INSERTION_ORDERED_MAP_INSERTION_ORDERED_MAP_H
