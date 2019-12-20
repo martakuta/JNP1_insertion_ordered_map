@@ -73,7 +73,6 @@ private:
         inside = 0;
         capacity = 2*capacity;
         std::shared_ptr<f_ptr[]> map(new f_ptr[capacity]);
-        //map = new f_ptr[capacity];
 
         while (act != nullptr) {
             insert(act->key, act->value);
@@ -87,6 +86,16 @@ private:
             act = nullptr;
             act = help;
         }
+    }
+
+    void copy_map(const insertion_ordered_map& other) {
+        f_ptr act = other.first;
+
+        while (act != nullptr) {
+            insert(act->key, act->value);
+            act = act->next;
+        }
+        //insert has already set "first" and "last" fields
     }
 
 public:
@@ -108,9 +117,8 @@ public:
         , sb_has_ref(false)
     {
         if (other.sb_has_ref) {
-            map = new f_ptr[capacity];
-            first = std::make_shared(other.first);
-            last = std::make_shared(other.last);
+            std::shared_ptr<f_ptr[]> map(new f_ptr[capacity]);
+            copy_map(other);
         } else {
             map = other.map;
             first = other.first;
