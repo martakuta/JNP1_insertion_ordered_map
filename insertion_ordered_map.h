@@ -3,7 +3,7 @@
 
 #include <iostream>
 #include <memory>
-
+  
 template <class K, class V, class Hash = std::hash<K>>
 class insertion_ordered_map {
 private:
@@ -22,16 +22,13 @@ private:
 
     size_t capacity = 16;
     std::shared_ptr<field[]> map;
-
-    
-
     f_ptr first = nullptr;
     f_ptr last = nullptr;
 
     //Daje wskaźnik pole przechowujące wartość z kluczek k lub null jeśli taki
     //klucz nie jest przechowywany
     f_ptr find(K const &k) const {
-        size_t hash = Hash(k);
+        size_t hash = Hash(k) % capacity;
 
         f_ptr current_ptr = map[hash];
         while(current_ptr) {
@@ -58,7 +55,7 @@ private:
 
         last = field_ptr;
     }    
-    
+
 public:
 
     //konstruktor bezparametrowy - tworzy pusty słownik
@@ -71,7 +68,7 @@ public:
         this->capacity = other.capacity;
         this->map = other.map;
         this->first = other.first;
-        this->end = other.end;
+        this->last = other.last;
     };
 
     //konstruktor przenoszący
@@ -151,15 +148,15 @@ public:
         std::shared_ptr<field> current_field;
 
     public:
-       
+
         Iterator() noexcept:
-            current_field(nullptr) {}
+                current_field(nullptr) {}
 
         Iterator(const Iterator &iterator) noexcept:
-            current_field(iterator.current_field) {}
+                current_field(iterator.current_field) {}
 
         Iterator(const std::shared_ptr<field> field_ptr) noexcept:
-            current_field(field_ptr) {}
+                current_field(field_ptr) {}
 
         Iterator& operator++() { 
             if (current_field) 
@@ -167,17 +164,18 @@ public:
             return *this; 
         } 
 
-        bool operator!=(const Iterator& iterator) { 
-            return current_field != iterator.current_field; 
-        } 
 
-        bool operator==(const Iterator& iterator) { 
-            return current_field == iterator.current_field; 
-        } 
+        bool operator!=(const Iterator& iterator) {
+            return current_field != iterator.current_field;
+        }
+
+        bool operator==(const Iterator& iterator) {
+            return current_field == iterator.current_field;
+        }
 
         const K& operator*() {
             return current_field->key;
-        } 
+        }
 
     };
 
