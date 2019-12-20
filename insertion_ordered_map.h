@@ -31,10 +31,10 @@ private:
     f_ptr last = nullptr;
     bool sb_has_ref;
 
-    //Daje wskaźnik pole przechowujące wartość z kluczek k lub null jeśli taki
+    //Daje wskaźnik na pole przechowujące wartość z kluczem k lub null jeśli taki
     //klucz nie jest przechowywany
     f_ptr find(K const &k) const {
-        size_t hash = Hash(k) % capacity;
+        size_t hash = Hash{}(k) % capacity;
 
         f_ptr current_ptr = map[hash];
         while(current_ptr) {
@@ -42,7 +42,9 @@ private:
                 return current_ptr;
             current_ptr = current_ptr->after;
         }
+        return nullptr;
     }
+
 
     //przesuwa pole na które wskazuje wskaźnik na koniec listy iteratora
     void move_to_end(f_ptr field_ptr) {
@@ -68,7 +70,8 @@ private:
         last = nullptr;
         inside = 0;
         capacity = 2*capacity;
-        map = new f_ptr[capacity];
+        std::shared_ptr<f_ptr[]> map(new f_ptr[capacity]);
+        //map = new f_ptr[capacity];
 
         while (act != nullptr) {
             insert(act->key, act->value);
@@ -139,7 +142,7 @@ public:
             return false;
         }
 
-        size_t hash = Hash(k) % capacity;
+        size_t hash = Hash{}(k) % capacity;
         f_ptr field_ptr = std::make_shared<field>();
         
         field_ptr->key = k;
@@ -165,23 +168,56 @@ public:
         return true;    
     }
     
-    /*
     //usuwanie ze słownika
-    void erase(K const &k) 
+    void erase(K const &k) {
+        f_ptr to_remove = find(k);
+        if (to_remove == nullptr) {
+            //Podnieś wyjątek "lookup error" TODO
+        }
+        
+        size_t hash = Hash{}(k) % capacity;
+        f_ptr before = to_remove->before;
+        f_ptr after = to_remove->after;
+        f_ptr next = to_remove->next;
+        f_ptr prev = to_remove->prev;
+      
+        if (last == to_remove)
+            last = prev;
+        if (first == to_remove)
+            first = next;
+        if (map[hash] == to_remove)
+            map[hash] = after;
+            
+        if (before != nullptr)
+            before->after = after;
+        if (after != nullptr)
+            after->before = before;
+        if (next != nullptr)
+            next->prev = prev;
+        if (prev != nullptr)
+            prev->next = next;
+        //Czy teraz inteligętny wskaźnik zwolni pamięć na ten obiekt?
+        //mam nadzieję, ale to chyba valgrind nam na to dopiero odpowie
+    }
+          
+    /* 
     //scalanie słowników
     void merge(insertion_ordered_map const &other);
     //zwracanie referencji na wartość pod kluczem
     V &at(K const &k);
     V const &at(K const &k) const;
     V &operator[](K const &k);
+    */
     //rozmiar słownika
     size_t size() const {
-        //TODO
+        return inside;
     }
+    
     //sprawdzanie pustości słownika
     bool empty() const {
-        //TODO
+        return inside == 0;
     }
+    /*
     //usuwanie wszystkiego ze słownika
     void clear();
     //sprawdzanie czy słownik zawiera element
@@ -233,6 +269,11 @@ public:
             return current_field->key;
         }
 
+        Iterator& operator=(Iterator other) {
+            this = other;
+            return *this;
+        }
+
     };
 
 
@@ -243,37 +284,30 @@ template <class K, class V, class Hash>
 bool insertion_ordered_map<K, V, Hash>::insert(K const& k, V const& v) {
     //TODO
 }
-
 template <class K, class V, class Hash>
 void insertion_ordered_map<K, V, Hash>::erase(K const &k) {
     //TODO
 }
-
 template <class K, class V, class Hash>
 void insertion_ordered_map<K, V, Hash>::merge(insertion_ordered_map const &other) {
     //TODO
 }
-
 template <class K, class V, class Hash>
 V& insertion_ordered_map<K, V, Hash>::at(K const &k) {
     //TODO
 }
-
 template <class K, class V, class Hash>
 V const& insertion_ordered_map<K, V, Hash>::at(K const &k) const {
     //TODO
 }
-
 template <class K, class V, class Hash>
 V& insertion_ordered_map<K, V, Hash>::operator[](K const &k) {
     //TODO
 }
-
 template <class K, class V, class Hash>
 void insertion_ordered_map<K, V, Hash>::clear() {
     //TODO
 }
-
 template <class K, class V, class Hash>
 bool insertion_ordered_map<K, V, Hash>::contains(K const &k) const {
     //TODO
