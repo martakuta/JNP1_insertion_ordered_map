@@ -26,7 +26,7 @@ private:
 
     size_t capacity = 16;
     size_t inside = 0;
-    tab_ptr map;
+    f_ptr* map;
     f_ptr first = nullptr;
     f_ptr last = nullptr;
     bool sb_has_ref;
@@ -71,9 +71,8 @@ private:
         first = nullptr;
         last = nullptr;
         inside = 0;
-        capacity = 2*capacity;
-        std::shared_ptr<f_ptr[]> map(new f_ptr[capacity]);
-        //map = new f_ptr[capacity];
+        capacity = 2*capacity; 
+        map = new f_ptr[capacity];
 
         while (act != nullptr) {
             insert(act->key, act->value);
@@ -155,9 +154,9 @@ public:
         field_ptr->prev = last;
     
         if (last != nullptr)
-        last->next = field_ptr;
+            last->next = field_ptr;
         if (map[hash] != nullptr)
-        map[hash]->before = field_ptr;
+            map[hash]->before = field_ptr;
 
         last = field_ptr;
         if(first == nullptr)
