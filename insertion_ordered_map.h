@@ -26,7 +26,7 @@ private:
 
     size_t capacity = 16;
     size_t inside = 0;
-    tab_ptr map;
+    f_ptr* map;
     f_ptr first = nullptr;
     f_ptr last = nullptr;
     bool sb_has_ref;
@@ -71,8 +71,9 @@ private:
         first = nullptr;
         last = nullptr;
         inside = 0;
-        capacity = 2*capacity;
-        std::shared_ptr<f_ptr[]> map(new f_ptr[capacity]);
+        capacity = 2*capacity; 
+        map = new f_ptr[capacity];
+        //std::shared_ptr<f_ptr[]> map(new f_ptr[capacity]);
 
         while (act != nullptr) {
             insert(act->key, act->value);
@@ -99,11 +100,7 @@ private:
     }
 
 public:
-/*
-    using node_ptr = std::shared_ptr<node>;
-    using tab_ptr = std::shared_ptr<node_ptr[]>;
-    , tab(new node_ptr[16])
-*/
+
     //konstruktor bezparametrowy - tworzy pusty słownik
     insertion_ordered_map()
         : map(new f_ptr[16])
@@ -163,9 +160,9 @@ public:
         field_ptr->prev = last;
     
         if (last != nullptr)
-        last->next = field_ptr;
+            last->next = field_ptr;
         if (map[hash] != nullptr)
-        map[hash]->before = field_ptr;
+            map[hash]->before = field_ptr;
 
         last = field_ptr;
         if(first == nullptr)
@@ -307,40 +304,4 @@ public:
 
 };
 
-/*
-template <class K, class V, class Hash>
-bool insertion_ordered_map<K, V, Hash>::insert(K const& k, V const& v) {
-    //TODO
-}
-template <class K, class V, class Hash>
-void insertion_ordered_map<K, V, Hash>::erase(K const &k) {
-    //TODO
-}
-template <class K, class V, class Hash>
-void insertion_ordered_map<K, V, Hash>::merge(insertion_ordered_map const &other) {
-    //TODO
-}
-template <class K, class V, class Hash>
-V& insertion_ordered_map<K, V, Hash>::at(K const &k) {
-    //TODO
-}
-template <class K, class V, class Hash>
-V const& insertion_ordered_map<K, V, Hash>::at(K const &k) const {
-    //TODO
-}
-template <class K, class V, class Hash>
-V& insertion_ordered_map<K, V, Hash>::operator[](K const &k) {
-    //TODO
-}
-template <class K, class V, class Hash>
-void insertion_ordered_map<K, V, Hash>::clear() {
-    //TODO
-}
-template <class K, class V, class Hash>
-bool insertion_ordered_map<K, V, Hash>::contains(K const &k) const {
-    //TODO
-} */
-
 #endif //INSERTION_ORDERED_MAP_INSERTION_ORDERED_MAP_H
-
-
