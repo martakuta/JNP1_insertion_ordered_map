@@ -208,7 +208,7 @@ public:
             prev->next = next;
 
         inside--;
-        //Czy teraz inteligętny wskaźnik zwolni pamięć na ten obiekt?
+        //Czy teraz inteligentny wskaźnik zwolni pamięć na ten obiekt?
     }
           
     /* 
@@ -226,10 +226,30 @@ public:
 
         return found->value;
     }
-     /*
-    V const &at(K const &k) const;
-    V &operator[](K const &k);
-    */
+
+    V const &at(K const &k) const {
+        f_ptr found = find(k);
+        if (found == nullptr) {
+            //Rzuć wyjątek TODO
+
+        }
+
+        return found->value;
+    }
+
+    V &operator[](K const &k) {
+        f_ptr found = find(k);
+
+        if (found == nullptr) {
+            V* v = new V;
+            insert(k, *v);
+            return *v;
+        }
+        else {
+            return found->value;
+        }
+    }
+
     //rozmiar słownika
     size_t size() const {
         return inside;
