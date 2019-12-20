@@ -13,7 +13,8 @@ namespace {
 int main()
 {
     insertion_ordered_map<int, int> iom = f({});
-    assert(iom.insert(1,1));
+    insertion_ordered_map<int, int> iom2(iom);
+    //assert(iom.insert(1,1));
 
     /*
   int keys[] = {3, 1, 2};
