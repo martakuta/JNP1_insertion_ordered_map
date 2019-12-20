@@ -3,27 +3,33 @@
 
 #include <iostream>
 #include <memory>
-  
+#include <functional>
+
 template <class K, class V, class Hash = std::hash<K>>
 class insertion_ordered_map {
 private:
      
     struct field;
     using f_ptr = std::shared_ptr<field>;
+    using tab_ptr = std::shared_ptr<f_ptr[]>;
 
     struct field {
         K key;
         V value;
+        //before and after are pointers to fields with the same hash
         f_ptr before;
         f_ptr after;
+        //prev i next are pointers to fields in order od insertion
         f_ptr prev;
         f_ptr next;
     };
 
     size_t capacity = 16;
-    std::shared_ptr<field[]> map;
+    size_t inside = 0;
+    tab_ptr map;
     f_ptr first = nullptr;
     f_ptr last = nullptr;
+    bool sb_has_ref;
 
     //Daje wskaźnik pole przechowujące wartość z kluczek k lub null jeśli taki
     //klucz nie jest przechowywany
@@ -54,32 +60,75 @@ private:
         field_ptr->prev = last;
 
         last = field_ptr;
-    }    
+    }
+
+    void extend_map() {
+        f_ptr act = first, help = first;
+        first = nullptr;
+        last = nullptr;
+        inside = 0;
+        capacity = 2*capacity;
+        map = new f_ptr[capacity];
+
+        while (act != nullptr) {
+            insert(act->key, act->value);
+
+            //nie dealokuję pamięci pod field, bo zrobi to shared_ptr
+            act->before = nullptr;
+            act->after = nullptr;
+            act->prev = nullptr;
+            help = act->next;
+            act->next = nullptr;
+            act = nullptr;
+            act = help;
+        }
+    }
 
 public:
-
+/*
+    using node_ptr = std::shared_ptr<node>;
+    using tab_ptr = std::shared_ptr<node_ptr[]>;
+    , tab(new node_ptr[16])
+*/
     //konstruktor bezparametrowy - tworzy pusty słownik
-    insertion_ordered_map() {
-        map = std::make_shared<field[capacity]>(nullptr);
-    };
+    insertion_ordered_map()
+        : map(new f_ptr[16])
+        , sb_has_ref(false)
+    {}
 
     //konstruktor kopiujący z semantyką copy-on-write
-    insertion_ordered_map(const insertion_ordered_map& other) {
-        this->capacity = other.capacity;
-        this->map = other.map;
-        this->first = other.first;
-        this->last = other.last;
+    insertion_ordered_map(const insertion_ordered_map& other)
+        : capacity(other.capacity)
+        , inside(other.inside)
+        , sb_has_ref(false)
+    {
+        if (other.sb_has_ref) {
+            map = new f_ptr[capacity];
+            first = std::make_shared(other.first);
+            last = std::make_shared(other.last);
+        } else {
+            map = other.map;
+            first = other.first;
+            last = other.last;
+        }
     };
 
     //konstruktor przenoszący
-    insertion_ordered_map(insertion_ordered_map &&other) noexcept {
-        this = std::move(other);
+    insertion_ordered_map(insertion_ordered_map &&other) noexcept
+        : capacity(other.capacity)
+        , map(other.map)
+        , first(other.first)
+        , last(other.last)
+        , sb_has_ref(other.sb_has_ref)
+        , inside(other.inside)
+    {
+        other.map = nullptr;
     }
-   /* //operator przypisania, przujmujący argument przez wartość
+    //operator przypisania, przujmujący argument przez wartość
     insertion_ordered_map &operator=(insertion_ordered_map other) {
-        //TODO
-    }*/
-
+        this = other;
+        return *this;
+    }
     
     //wstawianie do słownika
     bool insert(K const &k, V const &v) {
@@ -108,10 +157,16 @@ public:
             first = field_ptr;
 
         map[hash] = field_ptr;
+        inside++;
+
+        if (inside > capacity*3/4)
+            extend_map();
+
         return true;    
     }
     
     /*
+    //usuwanie ze słownika
     void erase(K const &k) 
     //scalanie słowników
     void merge(insertion_ordered_map const &other);
@@ -155,7 +210,8 @@ public:
         Iterator(const Iterator &iterator) noexcept:
                 current_field(iterator.current_field) {}
 
-        Iterator(const std::shared_ptr<field> field_ptr) noexcept:
+        //nie jestem pewna co do tego ecplicit, ale IDE mi podpowiada że musi ono być tutaj
+        explicit Iterator(const std::shared_ptr<field> field_ptr) noexcept:
                 current_field(field_ptr) {}
 
         Iterator& operator++() { 
@@ -222,7 +278,5 @@ template <class K, class V, class Hash>
 bool insertion_ordered_map<K, V, Hash>::contains(K const &k) const {
     //TODO
 } */
-
-int main() {}
 
 #endif //INSERTION_ORDERED_MAP_INSERTION_ORDERED_MAP_H
