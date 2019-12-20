@@ -64,6 +64,8 @@ private:
         last = field_ptr;
     }
 
+    
+
     void extend_map() {
         f_ptr act = first, help = first;
         first = nullptr;
@@ -152,7 +154,9 @@ public:
         field_ptr->next = nullptr;
         field_ptr->prev = last;
     
+        if (last != nullptr)
         last->next = field_ptr;
+        if (map[hash] != nullptr)
         map[hash]->before = field_ptr;
 
         last = field_ptr;
@@ -168,11 +172,12 @@ public:
         return true;    
     }
     
+    
     //usuwanie ze słownika
     void erase(K const &k) {
         f_ptr to_remove = find(k);
         if (to_remove == nullptr) {
-            //Podnieś wyjątek "lookup error" TODO
+            //Podnieś wyjątek TODO
         }
         
         size_t hash = Hash{}(k) % capacity;
@@ -196,15 +201,27 @@ public:
             next->prev = prev;
         if (prev != nullptr)
             prev->next = next;
+
+        inside--;
         //Czy teraz inteligętny wskaźnik zwolni pamięć na ten obiekt?
-        //mam nadzieję, ale to chyba valgrind nam na to dopiero odpowie
     }
           
     /* 
     //scalanie słowników
     void merge(insertion_ordered_map const &other);
     //zwracanie referencji na wartość pod kluczem
-    V &at(K const &k);
+     */
+
+    V &at(K const &k) {
+        f_ptr found = find(k);
+        if (found == nullptr) {
+            //Rzuć wyjątek TODO
+            
+        }
+
+        return found->value;
+    }
+     /*
     V const &at(K const &k) const;
     V &operator[](K const &k);
     */
@@ -220,9 +237,12 @@ public:
     /*
     //usuwanie wszystkiego ze słownika
     void clear();
-    //sprawdzanie czy słownik zawiera element
-    bool contains(K const &k) const;
     */
+
+    //sprawdzanie czy słownik zawiera element
+    bool contains(K const &k) const {
+        return find(k) != nullptr;
+    }
 
     class Iterator;
 
@@ -314,3 +334,5 @@ bool insertion_ordered_map<K, V, Hash>::contains(K const &k) const {
 } */
 
 #endif //INSERTION_ORDERED_MAP_INSERTION_ORDERED_MAP_H
+
+
