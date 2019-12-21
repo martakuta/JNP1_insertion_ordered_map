@@ -72,8 +72,6 @@ private:
         last = field_ptr;
     }
 
-
-
     void extend_map() {
         f_ptr old = first;
         f_ptr help = old;
@@ -139,6 +137,30 @@ private:
         }
     }
 
+    void disconnect(f_ptr field_ptr) {
+        field_ptr->before = nullptr;
+        field_ptr->after = nullptr;
+        field_ptr->prev = nullptr;
+        field_ptr->next = nullptr;
+    }
+
+    void clear_all() {
+        for(size_t i=0; i<capacity; i++)
+            map[i] = nullptr;
+        // delete[] map;
+
+        f_ptr act = first, help = first;
+        first = nullptr;
+        last = nullptr;
+        inside = 0;
+
+        while (act != nullptr) {
+            help = act->next;
+            disconnect(act);
+            act = help;
+        }
+    }
+
 public:
 
     void print_map(std::string name) {
@@ -154,7 +176,9 @@ public:
 
     //konstruktor bezparametrowy - tworzy pusty słownik
     insertion_ordered_map()
-            : map(new f_ptr[16]) {}
+            : map(new f_ptr[16])
+            , sb_has_ref(false)
+            {}
 
     //konstruktor kopiujący z semantyką copy-on-write
     insertion_ordered_map(const insertion_ordered_map& other) {
@@ -324,53 +348,61 @@ public:
     bool empty() const {
         return inside == 0;
     }
-    /*
+/*
+    ~insertion_ordered_map() {
+        clear_all();
+    }
+*/
     //usuwanie wszystkiego ze słownika
-    void clear();
-    */
+    void clear() {
+        clear_all();
+        capacity = 16;
+        map_ptr m(new f_ptr[capacity]);
+        map = m;
+    }
 
     //sprawdzanie czy słownik zawiera element
     bool contains(K const &k) const {
         return find(k) != nullptr;
     }
 
-    class Iterator;
+    class iterator;
 
-    Iterator begin() const {
-        return Iterator(first);
+    iterator begin() const {
+        return iterator(first);
     }
 
-    Iterator end() const {
-        return Iterator(nullptr);
+    iterator end() const {
+        return iterator(nullptr);
     }
 
-    class Iterator {
+    class iterator {
     private:
         std::shared_ptr<field> current_field;
 
     public:
 
-        Iterator() noexcept:
+        iterator() noexcept:
                 current_field(nullptr) {}
 
-        Iterator(const Iterator &iterator) noexcept:
+        iterator(const iterator &iterator) noexcept:
                 current_field(iterator.current_field) {}
 
         //nie jestem pewna co do tego ecplicit, ale IDE mi podpowiada że musi ono być tutaj
-        explicit Iterator(const std::shared_ptr<field> field_ptr) noexcept:
+        explicit iterator(const std::shared_ptr<field> field_ptr) noexcept:
                 current_field(field_ptr) {}
 
-        Iterator& operator++() {
+        iterator& operator++() {
             if (current_field)
                 current_field = current_field->next;
             return *this;
         }
 
-        bool operator!=(const Iterator& iterator) {
+        bool operator!=(const iterator& iterator) {
             return current_field != iterator.current_field;
         }
 
-        bool operator==(const Iterator& iterator) {
+        bool operator==(const iterator& iterator) {
             return current_field == iterator.current_field;
         }
 
@@ -382,7 +414,7 @@ public:
             return &(current_field->mapping);
         }
 
-        Iterator& operator=(Iterator other) {
+        iterator& operator=(iterator other) {
             this = other;
             return *this;
         }
