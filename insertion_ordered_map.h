@@ -10,8 +10,8 @@ class insertion_ordered_map {
 private:
      
     struct field;
+
     using f_ptr = std::shared_ptr<field>;
-    using tab_ptr = std::shared_ptr<f_ptr[]>;
 
     struct field {
         K key;
@@ -22,6 +22,7 @@ private:
         //prev i next are pointers to fields in order od insertion
         f_ptr prev;
         f_ptr next;
+
     };
 
     size_t capacity = 16;
@@ -64,27 +65,33 @@ private:
         last = field_ptr;
     }
 
-    
+    void disconnect(f_ptr field_ptr) {
+        field_ptr->before = nullptr;
+        field_ptr->after = nullptr;
+        field_ptr->prev = nullptr; 
+        field_ptr->next = nullptr;
+    }
 
     void extend_map() {
+        for(size_t i=0; i<capacity; i++)
+            map[i] = nullptr;
+        delete[] map;
+
+        capacity = 2*capacity; 
+        map = new f_ptr[capacity];
+
         f_ptr act = first, help = first;
         first = nullptr;
         last = nullptr;
         inside = 0;
-        capacity = 2*capacity; 
-        map = new f_ptr[capacity];
-        //std::shared_ptr<f_ptr[]> map(new f_ptr[capacity]);
+        
 
         while (act != nullptr) {
             insert(act->key, act->value);
 
             //nie dealokuję pamięci pod field, bo zrobi to shared_ptr
-            act->before = nullptr;
-            act->after = nullptr;
-            act->prev = nullptr;
             help = act->next;
-            act->next = nullptr;
-            act = nullptr;
+            disconnect(act);            
             act = help;
         }
     }
@@ -97,6 +104,24 @@ private:
             act = act->next;
         }
         //insert has already set "first" and "last" fields
+    }
+
+    void clear_all() {
+        for(size_t i=0; i<capacity; i++)
+            map[i] = nullptr;
+        delete[] map;         
+
+        f_ptr act = first, help = first;
+        first = nullptr;
+        last = nullptr;
+        inside = 0;
+
+         while (act != nullptr) {
+            help = act->next;
+            disconnect(act);
+            act = help;
+            
+        }
     }
 
 public:
@@ -134,6 +159,11 @@ public:
     {
         other.map = nullptr;
     }
+
+    ~insertion_ordered_map() {
+        clear_all();
+    }
+
     //operator przypisania, przujmujący argument przez wartość
     insertion_ordered_map &operator=(insertion_ordered_map other) {
         this = other;
@@ -208,7 +238,7 @@ public:
             prev->next = next;
 
         inside--;
-        //Czy teraz inteligętny wskaźnik zwolni pamięć na ten obiekt?
+        //Czy teraz inteligentny wskaźnik zwolni pamięć na ten obiekt?
     }
           
     /* 
@@ -226,10 +256,30 @@ public:
 
         return found->value;
     }
-     /*
-    V const &at(K const &k) const;
-    V &operator[](K const &k);
-    */
+
+    V const &at(K const &k) const {
+        f_ptr found = find(k);
+        if (found == nullptr) {
+            //Rzuć wyjątek TODO
+
+        }
+
+        return found->value;
+    }
+
+    V &operator[](K const &k) {
+        f_ptr found = find(k);
+
+        if (found == nullptr) {
+            V* v = new V;
+            insert(k, *v);
+            return *v;
+        }
+        else {
+            return found->value;
+        }
+    }
+
     //rozmiar słownika
     size_t size() const {
         return inside;
@@ -239,10 +289,14 @@ public:
     bool empty() const {
         return inside == 0;
     }
-    /*
+    
     //usuwanie wszystkiego ze słownika
-    void clear();
-    */
+    void clear() {
+        clear_all();
+        capacity = 16; 
+        map = new f_ptr[capacity];
+    }
+    
 
     //sprawdzanie czy słownik zawiera element
     bool contains(K const &k) const {
@@ -305,3 +359,4 @@ public:
 };
 
 #endif //INSERTION_ORDERED_MAP_INSERTION_ORDERED_MAP_H
+
