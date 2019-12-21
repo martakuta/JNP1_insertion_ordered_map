@@ -50,32 +50,6 @@ private:
         return nullptr;
     }
 
-    void clear_map() {
-        if (map == nullptr)
-            return;
-        for(size_t i=0; i<capacity; i++)
-            map[i] = nullptr;
-
-        map = nullptr;
-    }
-
-    void clear_all() {
-        clear_map();
-
-        f_ptr act = first, help = first;
-        first = nullptr;
-        last = nullptr;
-        inside = 0;
-
-        while (act != nullptr) {
-            help = act->next;
-            disconnect(act);
-            act = help;
-        }
-    }
-
-
-
     //przesuwa pole na które wskazuje wskaźnik na koniec listy iteratora
     void move_to_end(f_ptr field_ptr) {
         if (field_ptr->next == nullptr)
@@ -165,17 +139,21 @@ private:
         }
     }
 
-    void disconnect(f_ptr field_ptr) {
-        field_ptr->before = nullptr;
-        field_ptr->after = nullptr;
-        field_ptr->prev = nullptr;
-        field_ptr->next = nullptr;
+    void clear_map() {
+        if (map == nullptr)
+            return;
+        for(size_t i=0; i<capacity; i++) {
+            while (map[i] != nullptr) {
+                f_ptr help = map[i]->after;
+                map[i] = nullptr;
+                map[i] = help;
+            }
+        }
+        map = nullptr;
     }
 
     void clear_all() {
-        for(size_t i=0; i<capacity; i++)
-            map[i] = nullptr;
-        // delete[] map;
+        clear_map();
 
         f_ptr act = first, help = first;
         first = nullptr;
@@ -188,6 +166,14 @@ private:
             act = help;
         }
     }
+
+    void disconnect(f_ptr field_ptr) {
+        field_ptr->before = nullptr;
+        field_ptr->after = nullptr;
+        field_ptr->prev = nullptr;
+        field_ptr->next = nullptr;
+    }
+
 
 public:
 
