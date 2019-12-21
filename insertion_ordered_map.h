@@ -5,13 +5,19 @@
 #include <memory>
 #include <functional>
 
+struct lookup_error : public std::exception {
+   const char * what () const throw () {
+      return "No such a key in the map";
+   }
+};
+
 template <class K, class V, class Hash = std::hash<K>>
 class insertion_ordered_map {
 private:
      
     struct field;
-
     using f_ptr = std::shared_ptr<field>;
+    using map_ptr = std::shared_ptr<f_ptr[]>;
 
     struct field {
         K key;
@@ -22,12 +28,11 @@ private:
         //prev i next are pointers to fields in order od insertion
         f_ptr prev;
         f_ptr next;
-
     };
 
     size_t capacity = 16;
     size_t inside = 0;
-    f_ptr* map;
+    map_ptr map;
     f_ptr first = nullptr;
     f_ptr last = nullptr;
     bool sb_has_ref;
@@ -74,33 +79,50 @@ private:
 
     void extend_map() {
         for(size_t i=0; i<capacity; i++)
-            map[i] = nullptr;
-        delete[] map;
-
-        capacity = 2*capacity; 
-        map = new f_ptr[capacity];
+            map[i] = nullptr; 
 
         f_ptr act = first, help = first;
         first = nullptr;
         last = nullptr;
         inside = 0;
-        
+        capacity = 2*capacity;
+        map_ptr map(new f_ptr[capacity]);
+        //map = new f_ptr[capacity];
+        //std::shared_ptr<f_ptr[]> map(new f_ptr[capacity]);
 
         while (act != nullptr) {
             insert(act->key, act->value);
 
             //nie dealokuję pamięci pod field, bo zrobi to shared_ptr
             help = act->next;
-            disconnect(act);            
+            disconnect(act);
             act = help;
         }
     }
 
-    void copy_map(const insertion_ordered_map& other) {
-        f_ptr act = other.first;
+    void copy_map(const f_ptr& other_first, bool merge) {
+        f_ptr act = other_first;
+        //std::cout << "copy map, use_count=" << map.use_count() << "\n";
+        //char a;
+        //std::cin >> a;
 
         while (act != nullptr) {
-            insert(act->key, act->value);
+            //std::cout << "-----" << act->key << "\n";
+            if (merge) {
+                //std::cout << "merge\n";
+                if (!contains(act->key)) {
+                    insert(act->key, act->value);
+                    //std::cout << "dodaje " << act->key << "-" << act->value << "\n";
+                }
+                else {
+                    //std::cout << "already contain key " << act->key << "\n";
+                }
+            }
+            else {
+                //std::cout << "not merge\n";
+                insert(act->key, act->value);
+                //std::cout << "dodaje " << act->key << "-" << act->value << "\n";
+            }
             act = act->next;
         }
         //insert has already set "first" and "last" fields
@@ -109,7 +131,7 @@ private:
     void clear_all() {
         for(size_t i=0; i<capacity; i++)
             map[i] = nullptr;
-        delete[] map;         
+       // delete[] map;         
 
         f_ptr act = first, help = first;
         first = nullptr;
@@ -126,6 +148,17 @@ private:
 
 public:
 
+    void print_map(std::string name) {
+        std::cout << name << ": ";
+        f_ptr act = first;
+
+        while (act != nullptr) {
+            std::cout << act->key << "-" << act->value << "*";
+            act = act->next;
+        }
+        std::cout << "\n";
+    }
+
     //konstruktor bezparametrowy - tworzy pusty słownik
     insertion_ordered_map()
         : map(new f_ptr[16])
@@ -139,8 +172,9 @@ public:
         , sb_has_ref(false)
     {
         if (other.sb_has_ref) {
-            std::shared_ptr<f_ptr[]> map(new f_ptr[capacity]);
-            copy_map(other);
+            //std::shared_ptr<f_ptr[]> map(new f_ptr[capacity]);
+            map_ptr map(new f_ptr[capacity]);
+            copy_map(other.first, false);
         } else {
             map = other.map;
             first = other.first;
@@ -163,7 +197,7 @@ public:
     ~insertion_ordered_map() {
         clear_all();
     }
-
+   
     //operator przypisania, przujmujący argument przez wartość
     insertion_ordered_map &operator=(insertion_ordered_map other) {
         this = other;
@@ -172,6 +206,16 @@ public:
     
     //wstawianie do słownika
     bool insert(K const &k, V const &v) {
+/*
+        std::cout << "insert " << k << "-" << v << " users: ";
+        std::cout << map.use_count() << "\n";
+*/
+        if (map.use_count() > 1) {
+            f_ptr other_first = first;
+            map_ptr m(new f_ptr[capacity]);
+            map = m;
+            copy_map(other_first, false);
+        }
           
         f_ptr found = find(k);
         if(found != nullptr) {
@@ -212,7 +256,7 @@ public:
     void erase(K const &k) {
         f_ptr to_remove = find(k);
         if (to_remove == nullptr) {
-            //Podnieś wyjątek TODO
+            throw lookup_error();
         }
         
         size_t hash = Hash{}(k) % capacity;
@@ -240,35 +284,35 @@ public:
         inside--;
         //Czy teraz inteligentny wskaźnik zwolni pamięć na ten obiekt?
     }
-          
-    /* 
-    //scalanie słowników
-    void merge(insertion_ordered_map const &other);
-    //zwracanie referencji na wartość pod kluczem
-     */
 
+    //scalanie słowników
+    void merge(insertion_ordered_map const &other) {
+        copy_map(other.first, true);
+    }
+
+    //zwracanie referencji na wartość pod kluczem
     V &at(K const &k) {
         f_ptr found = find(k);
         if (found == nullptr) {
-            //Rzuć wyjątek TODO
+            throw lookup_error();
             
         }
-
+        sb_has_ref = true;
         return found->value;
     }
 
     V const &at(K const &k) const {
         f_ptr found = find(k);
         if (found == nullptr) {
-            //Rzuć wyjątek TODO
-
+            throw lookup_error();
         }
-
+        sb_has_ref = true;
         return found->value;
     }
 
     V &operator[](K const &k) {
         f_ptr found = find(k);
+        sb_has_ref = true;
 
         if (found == nullptr) {
             V* v = new V;
@@ -289,14 +333,13 @@ public:
     bool empty() const {
         return inside == 0;
     }
-    
+
     //usuwanie wszystkiego ze słownika
     void clear() {
         clear_all();
         capacity = 16; 
         map = new f_ptr[capacity];
     }
-    
 
     //sprawdzanie czy słownik zawiera element
     bool contains(K const &k) const {
@@ -357,6 +400,7 @@ public:
 
 
 };
+
 
 #endif //INSERTION_ORDERED_MAP_INSERTION_ORDERED_MAP_H
 
