@@ -20,8 +20,7 @@ private:
     using map_ptr = std::shared_ptr<f_ptr[]>;
 
     struct field {
-        K key;
-        V value;
+        std::pair<K, V> mapping;
         //before and after are pointers to fields with the same hash
         f_ptr before;
         f_ptr after;
@@ -44,7 +43,7 @@ private:
 
         f_ptr current_ptr = map[hash];
         while(current_ptr) {
-            if (current_ptr->key == k)
+            if (current_ptr->mapping.first == k)
                 return current_ptr;
             current_ptr = current_ptr->after;
         }
@@ -86,12 +85,13 @@ private:
         last = nullptr;
         inside = 0;
         capacity = 2*capacity;
-        map_ptr map(new f_ptr[capacity]);
+        map_ptr m(new f_ptr[capacity]);
+        map = m;
         //map = new f_ptr[capacity];
         //std::shared_ptr<f_ptr[]> map(new f_ptr[capacity]);
 
         while (act != nullptr) {
-            insert(act->key, act->value);
+            insert(act->mapping.first, act->mapping.second);
 
             //nie dealokuję pamięci pod field, bo zrobi to shared_ptr
             help = act->next;
@@ -110,8 +110,8 @@ private:
             //std::cout << "-----" << act->key << "\n";
             if (merge) {
                 //std::cout << "merge\n";
-                if (!contains(act->key)) {
-                    insert(act->key, act->value);
+                if (!contains(act->mapping.first)) {
+                    insert(act->mapping.first, act->mapping.second);
                     //std::cout << "dodaje " << act->key << "-" << act->value << "\n";
                 }
                 else {
@@ -120,7 +120,7 @@ private:
             }
             else {
                 //std::cout << "not merge\n";
-                insert(act->key, act->value);
+                insert(act->mapping.first, act->mapping.second);
                 //std::cout << "dodaje " << act->key << "-" << act->value << "\n";
             }
             act = act->next;
@@ -153,7 +153,7 @@ public:
         f_ptr act = first;
 
         while (act != nullptr) {
-            std::cout << act->key << "-" << act->value << "*";
+            std::cout << act->mapping.first << "-" << act->mapping.second << "*";
             act = act->next;
         }
         std::cout << "\n";
@@ -226,8 +226,7 @@ public:
         size_t hash = Hash{}(k) % capacity;
         f_ptr field_ptr = std::make_shared<field>();
         
-        field_ptr->key = k;
-        field_ptr->value = v;
+        field_ptr->mapping = std::make_pair(k, v);
         field_ptr->after = map[hash];
         field_ptr->before = nullptr;
         field_ptr->next = nullptr;
@@ -298,7 +297,7 @@ public:
             
         }
         sb_has_ref = true;
-        return found->value;
+        return found->mapping.second;
     }
 
     V const &at(K const &k) const {
@@ -361,6 +360,7 @@ public:
         std::shared_ptr<field> current_field;
 
     public:
+        
 
         Iterator() noexcept:
                 current_field(nullptr) {}
@@ -387,14 +387,20 @@ public:
             return current_field == iterator.current_field;
         }
 
-        const K& operator*() {
-            return current_field->key;
+        const std::pair<K, V>& operator*() {
+            return current_field->mapping;
+        }
+
+        const std::pair<K, V>* operator->() {
+            return &(current_field->mapping);
         }
 
         Iterator& operator=(Iterator other) {
             this = other;
             return *this;
         }
+
+
 
     };
 
