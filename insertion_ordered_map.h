@@ -98,26 +98,14 @@ private:
 
     void copy_map(const f_ptr& other_first, bool merge) {
         f_ptr act = other_first;
-        /*std::cout << "copy map, use_count=" << map.use_count() << "\n";
-        char a;
-        std::cin >> a;*/
 
         while (act != nullptr) {
-            //std::cout << "-----" << act->mapping.first << "\n";
             if (merge) {
-                //std::cout << "merge\n";
-                if (!contains(act->mapping.first)) {
+                if (!contains(act->mapping.first))
                     insert(act->mapping.first, act->mapping.second);
-                    //std::cout << "dodaje " << act->mapping.first << "-" << act->mapping.second << "\n";
-                }
-                else {
-                    //std::cout << "already contain key " << act->mapping.first << "\n";
-                }
             }
             else {
-                //std::cout << "not merge\n";
                 insert(act->mapping.first, act->mapping.second);
-                //std::cout << "dodaje " << act->mapping.first << "-" << act->mapping.second << "\n";
             }
             act = act->next;
         }
@@ -145,14 +133,22 @@ private:
     }
 
     void clear_all() {
-        for(size_t i=0; i<capacity; i++)
-            map[i] = nullptr;
+        if (map != nullptr) {
+            for (size_t i = 0; i < capacity; i++) {
+                while (map[i] != nullptr) {
+                    f_ptr help = map[i]->after;
+                    map[i] = nullptr;
+                    map[i] = help;
+                }
+            }
+        }
         // delete[] map;
 
         f_ptr act = first, help = first;
         first = nullptr;
         last = nullptr;
         inside = 0;
+        sb_has_ref = false;
 
         while (act != nullptr) {
             help = act->next;
@@ -258,6 +254,7 @@ public:
 
         map[hash] = field_ptr;
         inside++;
+        sb_has_ref = false;
 
         if (inside > capacity*3/4)
             extend_map();
@@ -296,6 +293,7 @@ public:
             prev->next = next;
 
         inside--;
+        sb_has_ref = false;
         //Czy teraz inteligentny wskaźnik zwolni pamięć na ten obiekt?
     }
 
@@ -304,6 +302,7 @@ public:
 
         copy_yourself_if_needed();
         copy_map(other.first, true);
+        sb_has_ref = false;
     }
 
     //zwracanie referencji na wartość pod kluczem
@@ -330,7 +329,7 @@ public:
     V &operator[](K const &k) {
         copy_yourself_if_needed();
         f_ptr found = find(k);
-        sb_has_ref = true;
+        //sb_has_ref = true;
 
         if (found == nullptr) {
             insert(k, V());
