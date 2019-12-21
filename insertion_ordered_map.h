@@ -154,16 +154,14 @@ public:
 
     //konstruktor bezparametrowy - tworzy pusty słownik
     insertion_ordered_map()
-            : map(new f_ptr[16])
-            , sb_has_ref(false)
-    {}
+            : map(new f_ptr[16]) {}
 
     //konstruktor kopiujący z semantyką copy-on-write
-    insertion_ordered_map(const insertion_ordered_map& other)
-            : capacity(other.capacity)
-            , inside(other.inside)
-            , sb_has_ref(false)
-    {
+    insertion_ordered_map(const insertion_ordered_map& other) {
+        capacity = other.capacity;
+        inside = other.inside;
+        sb_has_ref = false;
+
         if (other.sb_has_ref) {
             map_ptr m(new f_ptr[capacity]);
             map = m;
@@ -177,14 +175,14 @@ public:
     };
 
     //konstruktor przenoszący
-    insertion_ordered_map(insertion_ordered_map &&other) noexcept
-            : capacity(other.capacity)
-            , map(other.map)
-            , first(other.first)
-            , last(other.last)
-            , sb_has_ref(other.sb_has_ref)
-            , inside(other.inside)
+    insertion_ordered_map(insertion_ordered_map &&other) noexcept 
+            : map(other.map)
     {
+        capacity = other.capacity;
+        first = other.first;
+        last = other.last;
+        sb_has_ref = other.sb_has_ref;
+        inside = other.inside;
         other.map = nullptr;
     }
 
@@ -392,3 +390,4 @@ public:
 };
 
 #endif //INSERTION_ORDERED_MAP_INSERTION_ORDERED_MAP_H
+
