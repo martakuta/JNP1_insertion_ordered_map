@@ -7,7 +7,7 @@
 
 struct lookup_error : public std::exception {
    const char * what () const throw () {
-      return "No such a key in the map";
+      return "lookup_error";
    }
 };
 
@@ -41,11 +41,11 @@ private:
     f_ptr find(K const &k) const {
         size_t hash = Hash{}(k) % capacity;
 
-        f_ptr current_ptr = map[hash];
-        while(current_ptr) {
-            if (current_ptr->mapping.first == k)
-                return current_ptr;
-            current_ptr = current_ptr->after;
+        f_ptr act = map[hash];
+        while(act) {
+            if (act->mapping.first == k)
+                return act;
+            act = act->after;
         }
         return nullptr;
     }
@@ -57,9 +57,12 @@ private:
             return;
         f_ptr prev = field_ptr->prev;
         f_ptr next = field_ptr->next;
-        
+
         if (prev != nullptr)
             prev->next = next;
+        else
+            first = next;
+
         next->prev = prev;
 
         last->next = field_ptr;
@@ -77,34 +80,31 @@ private:
     }
 
     void extend_map() {
-        for(size_t i=0; i<capacity; i++)
-            map[i] = nullptr; 
-
-        f_ptr act = first, help = first;
-        first = nullptr;
-        last = nullptr;
+        f_ptr old = first;
+        f_ptr help = old;
         inside = 0;
         capacity = 2*capacity;
         map_ptr m(new f_ptr[capacity]);
         map = m;
-        //map = new f_ptr[capacity];
-        //std::shared_ptr<f_ptr[]> map(new f_ptr[capacity]);
+        first = nullptr;
+        last = nullptr;
 
-        while (act != nullptr) {
-            insert(act->mapping.first, act->mapping.second);
+        while (old != nullptr) {
+            insert(old->key, old->value);
 
             //nie dealokuję pamięci pod field, bo zrobi to shared_ptr
-            help = act->next;
-            disconnect(act);
-            act = help;
+            old->before = nullptr;
+            old->after = nullptr;
+            old->prev = nullptr;
+            help = old->next;
+            old->next = nullptr;
+            old = nullptr;
+            old = help;
         }
     }
 
     void copy_map(const f_ptr& other_first, bool merge) {
         f_ptr act = other_first;
-        //std::cout << "copy map, use_count=" << map.use_count() << "\n";
-        //char a;
-        //std::cin >> a;
 
         while (act != nullptr) {
             //std::cout << "-----" << act->key << "\n";
@@ -112,6 +112,7 @@ private:
                 //std::cout << "merge\n";
                 if (!contains(act->mapping.first)) {
                     insert(act->mapping.first, act->mapping.second);
+
                     //std::cout << "dodaje " << act->key << "-" << act->value << "\n";
                 }
                 else {
@@ -142,7 +143,18 @@ private:
             help = act->next;
             disconnect(act);
             act = help;
+    }        
             
+    void copy_yourself_if_needed() {
+        if (map.use_count() > 1) {
+            f_ptr other_first = first;
+            map_ptr m(new f_ptr[capacity]);
+            map = m;
+            first = nullptr;
+            last = nullptr;
+            inside = 0;
+            sb_has_ref = false;
+            copy_map(other_first, false);
         }
     }
 
@@ -172,10 +184,11 @@ public:
         , sb_has_ref(false)
     {
         if (other.sb_has_ref) {
-            //std::shared_ptr<f_ptr[]> map(new f_ptr[capacity]);
-            map_ptr map(new f_ptr[capacity]);
+            map_ptr m(new f_ptr[capacity]);
+            map = m;
             copy_map(other.first, false);
-        } else {
+        }
+        else {
             map = other.map;
             first = other.first;
             last = other.last;
@@ -198,25 +211,28 @@ public:
         clear_all();
     }
    
+    void swap(insertion_ordered_map& iom) noexcept
+    {
+        std::swap(this->map, iom.map);
+        std::swap(this->first, iom.first);
+        std::swap(this->last, iom.last);
+        std::swap(this->capacity, iom.capacity);
+        std::swap(this->inside, iom.inside);
+        std::swap(this->sb_has_ref, iom.sb_has_ref);
+    }
+
     //operator przypisania, przujmujący argument przez wartość
     insertion_ordered_map &operator=(insertion_ordered_map other) {
-        this = other;
+        insertion_ordered_map temp(other);
+        temp.swap(*this);
         return *this;
     }
     
     //wstawianie do słownika
     bool insert(K const &k, V const &v) {
-/*
-        std::cout << "insert " << k << "-" << v << " users: ";
-        std::cout << map.use_count() << "\n";
-*/
-        if (map.use_count() > 1) {
-            f_ptr other_first = first;
-            map_ptr m(new f_ptr[capacity]);
-            map = m;
-            copy_map(other_first, false);
-        }
-          
+      
+        copy_yourself_if_needed();
+
         f_ptr found = find(k);
         if(found != nullptr) {
             move_to_end(found);
@@ -286,6 +302,7 @@ public:
 
     //scalanie słowników
     void merge(insertion_ordered_map const &other) {
+        copy_yourself_if_needed();
         copy_map(other.first, true);
     }
 
@@ -294,7 +311,6 @@ public:
         f_ptr found = find(k);
         if (found == nullptr) {
             throw lookup_error();
-            
         }
         sb_has_ref = true;
         return found->mapping.second;
@@ -310,17 +326,15 @@ public:
     }
 
     V &operator[](K const &k) {
+        copy_yourself_if_needed();
         f_ptr found = find(k);
         sb_has_ref = true;
 
         if (found == nullptr) {
-            V* v = new V;
-            insert(k, *v);
-            return *v;
+            insert(k, V());
         }
-        else {
-            return found->mapping.second;
-        }
+        found = find(k);
+        return found->value;
     }
 
     //rozmiar słownika
@@ -361,7 +375,6 @@ public:
 
     public:
         
-
         Iterator() noexcept:
                 current_field(nullptr) {}
 
@@ -377,7 +390,6 @@ public:
                 current_field = current_field->next; 
             return *this; 
         } 
-
 
         bool operator!=(const Iterator& iterator) {
             return current_field != iterator.current_field;
@@ -399,14 +411,8 @@ public:
             this = other;
             return *this;
         }
-
-
-
     };
-
-
 };
 
 
 #endif //INSERTION_ORDERED_MAP_INSERTION_ORDERED_MAP_H
-
