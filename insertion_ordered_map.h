@@ -89,11 +89,27 @@ private:
         }
     }
 
-    void copy_map(const insertion_ordered_map& other) {
+    void copy_map(const insertion_ordered_map& other, bool merge) {
         f_ptr act = other.first;
+        //std::cout << "copy map, use_count=" << first.use_count() << "\n";
 
         while (act != nullptr) {
-            insert(act->key, act->value);
+            //std::cout << "-----" << act->key << "\n";
+            if (merge) {
+                //std::cout << "merge\n";
+                if (!contains(act->key)) {
+                    insert(act->key, act->value);
+                    //std::cout << "dodaje " << act->key << "-" << act->value << "\n";
+                }
+                else {
+                    //std::cout << "already contain key " << act->key << "\n";
+                }
+            }
+            else {
+                //std::cout << "not merge\n";
+                insert(act->key, act->value);
+                //std::cout << "dodaje " << act->key << "-" << act->value << "\n";
+            }
             act = act->next;
         }
         //insert has already set "first" and "last" fields
@@ -115,7 +131,7 @@ public:
     {
         if (other.sb_has_ref) {
             std::shared_ptr<f_ptr[]> map(new f_ptr[capacity]);
-            copy_map(other);
+            copy_map(other, false);
         } else {
             map = other.map;
             first = other.first;
@@ -142,6 +158,14 @@ public:
     
     //wstawianie do słownika
     bool insert(K const &k, V const &v) {
+
+        /*
+        //sprawdzenie czy ktos inny nie ma dostepu do naszych danych
+        if (inside == 0 || first.use_count() > 1) {
+            std::shared_ptr<f_ptr[]> map(new f_ptr[capacity]);
+            first = nullptr;
+            copy_map(*this, false);
+        }*/
           
         f_ptr found = find(k);
         if(found != nullptr) {
@@ -210,20 +234,20 @@ public:
         inside--;
         //Czy teraz inteligentny wskaźnik zwolni pamięć na ten obiekt?
     }
-          
-    /* 
-    //scalanie słowników
-    void merge(insertion_ordered_map const &other);
-    //zwracanie referencji na wartość pod kluczem
-     */
 
+    //scalanie słowników
+    void merge(insertion_ordered_map const &other) {
+        copy_map(other, true);
+    }
+
+    //zwracanie referencji na wartość pod kluczem
     V &at(K const &k) {
         f_ptr found = find(k);
         if (found == nullptr) {
             //Rzuć wyjątek TODO
             
         }
-
+        sb_has_ref = true;
         return found->value;
     }
 
@@ -233,12 +257,13 @@ public:
             //Rzuć wyjątek TODO
 
         }
-
+        sb_has_ref = true;
         return found->value;
     }
 
     V &operator[](K const &k) {
         f_ptr found = find(k);
+        sb_has_ref = true;
 
         if (found == nullptr) {
             V* v = new V;
