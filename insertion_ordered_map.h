@@ -50,6 +50,31 @@ private:
         return nullptr;
     }
 
+    void clear_map() {
+        if (map == nullptr)
+            return;
+        for(size_t i=0; i<capacity; i++)
+            map[i] = nullptr;
+
+        map = nullptr;
+    }
+
+    void clear_all() {
+        clear_map();
+
+        f_ptr act = first, help = first;
+        first = nullptr;
+        last = nullptr;
+        inside = 0;
+
+        while (act != nullptr) {
+            help = act->next;
+            disconnect(act);
+            act = help;
+        }
+    }
+
+
 
     //przesuwa pole na które wskazuje wskaźnik na koniec listy iteratora
     void move_to_end(f_ptr field_ptr) {
@@ -73,6 +98,9 @@ private:
     }
 
     void extend_map() {
+        for(size_t i=0; i<capacity; i++)
+            map[i] = nullptr;
+
         f_ptr old = first;
         f_ptr help = old;
         inside = 0;
@@ -98,14 +126,26 @@ private:
 
     void copy_map(const f_ptr& other_first, bool merge) {
         f_ptr act = other_first;
+        /*std::cout << "copy map, use_count=" << map.use_count() << "\n";
+        char a;
+        std::cin >> a;*/
 
         while (act != nullptr) {
+            //std::cout << "-----" << act->mapping.first << "\n";
             if (merge) {
-                if (!contains(act->mapping.first))
+                //std::cout << "merge\n";
+                if (!contains(act->mapping.first)) {
                     insert(act->mapping.first, act->mapping.second);
+                    //std::cout << "dodaje " << act->mapping.first << "-" << act->mapping.second << "\n";
+                }
+                else {
+                    //std::cout << "already contain key " << act->mapping.first << "\n";
+                }
             }
             else {
+                //std::cout << "not merge\n";
                 insert(act->mapping.first, act->mapping.second);
+                //std::cout << "dodaje " << act->mapping.first << "-" << act->mapping.second << "\n";
             }
             act = act->next;
         }
@@ -133,22 +173,14 @@ private:
     }
 
     void clear_all() {
-        if (map != nullptr) {
-            for (size_t i = 0; i < capacity; i++) {
-                while (map[i] != nullptr) {
-                    f_ptr help = map[i]->after;
-                    map[i] = nullptr;
-                    map[i] = help;
-                }
-            }
-        }
+        for(size_t i=0; i<capacity; i++)
+            map[i] = nullptr;
         // delete[] map;
 
         f_ptr act = first, help = first;
         first = nullptr;
         last = nullptr;
         inside = 0;
-        sb_has_ref = false;
 
         while (act != nullptr) {
             help = act->next;
@@ -347,11 +379,11 @@ public:
     bool empty() const {
         return inside == 0;
     }
-/*
+
     ~insertion_ordered_map() {
         clear_all();
     }
-*/
+
     //usuwanie wszystkiego ze słownika
     void clear() {
         clear_all();
