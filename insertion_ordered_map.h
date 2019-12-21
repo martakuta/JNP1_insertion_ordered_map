@@ -306,7 +306,7 @@ public:
             throw lookup_error();
         }
         sb_has_ref = true;
-        return found->value;
+        return found->mapping.second;
     }
 
     V &operator[](K const &k) {
@@ -319,7 +319,7 @@ public:
             return *v;
         }
         else {
-            return found->value;
+            return found->mapping.second;
         }
     }
 
@@ -347,11 +347,11 @@ public:
 
     class Iterator;
 
-    Iterator begin() {
+    Iterator begin() const {
         return Iterator(first);
     }
 
-    Iterator end() {
+    Iterator end() const {
         return Iterator(nullptr);
     }
 
