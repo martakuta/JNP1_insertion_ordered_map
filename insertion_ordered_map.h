@@ -5,10 +5,10 @@
 #include <memory>
 #include <functional>
 
-struct lookup_error : public std::exception {
-   const char * what () const throw () {
-      return "lookup_error";
-   }
+class lookup_error : std::exception {
+    char const* what() const noexcept {
+        return "lookup_error";
+    }
 };
 
 template <class K, class V, class Hash = std::hash<K>>
@@ -34,7 +34,7 @@ private:
     map_ptr map;
     f_ptr first = nullptr;
     f_ptr last = nullptr;
-    bool sb_has_ref;
+    bool sb_has_ref = false;
 
     //Daje wskaźnik na pole przechowujące wartość z kluczem k lub null jeśli taki
     //klucz nie jest przechowywany
@@ -90,7 +90,7 @@ private:
         last = nullptr;
 
         while (old != nullptr) {
-            insert(old->key, old->value);
+            insert(old->mapping.first, old->mapping.second);
 
             //nie dealokuję pamięci pod field, bo zrobi to shared_ptr
             old->before = nullptr;
@@ -107,22 +107,21 @@ private:
         f_ptr act = other_first;
 
         while (act != nullptr) {
-            //std::cout << "-----" << act->key << "\n";
+            //std::cout << "-----" << act->mapping.first << "\n";
             if (merge) {
                 //std::cout << "merge\n";
                 if (!contains(act->mapping.first)) {
                     insert(act->mapping.first, act->mapping.second);
-
-                    //std::cout << "dodaje " << act->key << "-" << act->value << "\n";
+                    //std::cout << "dodaje " << act->mapping.first << "-" << act->mapping.second << "\n";
                 }
                 else {
-                    //std::cout << "already contain key " << act->key << "\n";
+                    //std::cout << "already contain key" << act->mapping.first << "\n";
                 }
             }
             else {
                 //std::cout << "not merge\n";
                 insert(act->mapping.first, act->mapping.second);
-                //std::cout << "dodaje " << act->key << "-" << act->value << "\n";
+                //std::cout << "dodaje " << act->mapping.first << "-" << act->mapping.second << "\n";
             }
             act = act->next;
         }
@@ -140,9 +139,10 @@ private:
         inside = 0;
 
          while (act != nullptr) {
-            help = act->next;
-            disconnect(act);
-            act = help;
+             help = act->next;
+             disconnect(act);
+             act = help;
+         }
     }        
             
     void copy_yourself_if_needed() {
@@ -183,12 +183,33 @@ public:
         , inside(other.inside)
         , sb_has_ref(false)
     {
+        //std::cout << "konstr kopiujący\n";
         if (other.sb_has_ref) {
+            //std::cout << "pełna kopia\n";
             map_ptr m(new f_ptr[capacity]);
             map = m;
             copy_map(other.first, false);
         }
         else {
+            //std::cout << "tylko przypina\n";
+        /*    print_map("me");
+            std::cout << "other from first: ";
+            f_ptr act = other.first;
+
+            while (act != nullptr) {
+                std::cout << act->mapping.first << "-" << act->mapping.second << "*";
+                act = act->next;
+            }
+            std::cout << "\n";
+            std::cout << "other from last: ";
+            act = other.last;
+
+            while (act != nullptr) {
+                std::cout << act->mapping.first << "-" << act->mapping.second << "*";
+                act = act->next;
+            }
+            std::cout << "\n";
+*/
             map = other.map;
             first = other.first;
             last = other.last;
@@ -211,20 +232,20 @@ public:
         clear_all();
     }
    
-    void swap(insertion_ordered_map& iom) noexcept
+    friend void swap(insertion_ordered_map& a, insertion_ordered_map& b) noexcept
     {
-        std::swap(this->map, iom.map);
-        std::swap(this->first, iom.first);
-        std::swap(this->last, iom.last);
-        std::swap(this->capacity, iom.capacity);
-        std::swap(this->inside, iom.inside);
-        std::swap(this->sb_has_ref, iom.sb_has_ref);
+        std::swap(a.map, b.map);
+        std::swap(a.first, b.first);
+        std::swap(a.last, b.last);
+        std::swap(a.capacity, b.capacity);
+        std::swap(a.inside, b.inside);
+        std::swap(a.sb_has_ref, b.sb_has_ref);
     }
 
     //operator przypisania, przujmujący argument przez wartość
     insertion_ordered_map &operator=(insertion_ordered_map other) {
-        insertion_ordered_map temp(other);
-        temp.swap(*this);
+
+        swap(*this, other);
         return *this;
     }
     
@@ -334,7 +355,8 @@ public:
             insert(k, V());
         }
         found = find(k);
-        return found->value;
+        //std::cout << "iom[" << found->mapping.first<< "] = " << found->mapping.second << "\n";
+        return found->mapping.second;
     }
 
     //rozmiar słownika

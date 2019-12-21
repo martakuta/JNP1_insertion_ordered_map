@@ -57,16 +57,16 @@ int main()
 
   int keys[] = {3, 1, 2};
 
-  insertion_ordered_map<int, int> iom1 = f({});
+  insertion_ordered_map<int, int> iom1 = f({}); //dlaczego nie działa dla f({})??????
 
   for (int i = 0; i < 3; ++i) {
     iom1[keys[i]] = i;
   }
 
   auto &ref = iom1[3];
-
   insertion_ordered_map<int, int> iom2(iom1); // Wykonuje się pełna kopia. Dlaczego?
   insertion_ordered_map<int, int> iom3;
+
   iom3 = iom2;
 
   ref = 10;
