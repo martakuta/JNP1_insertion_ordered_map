@@ -67,34 +67,36 @@ private:
     
 
     void extend_map() {
-        f_ptr act = first, help = first;
-        first = nullptr;
-        last = nullptr;
+        //std::cout  << "I need to extend my map, it has already " << inside << "/" << capacity << "elements\n";
+
+        f_ptr old = first;
+        f_ptr help = old;
         inside = 0;
         capacity = 2*capacity;
-        map_ptr map(new f_ptr[capacity]);
-        //map = new f_ptr[capacity];
-        //std::shared_ptr<f_ptr[]> map(new f_ptr[capacity]);
+        map_ptr m(new f_ptr[capacity]);
+        map = m;
+        first = nullptr;
+        last = nullptr;
 
-        while (act != nullptr) {
-            insert(act->key, act->value);
+        while (old != nullptr) {
+            insert(old->key, old->value);
 
             //nie dealokuję pamięci pod field, bo zrobi to shared_ptr
-            act->before = nullptr;
-            act->after = nullptr;
-            act->prev = nullptr;
-            help = act->next;
-            act->next = nullptr;
-            act = nullptr;
-            act = help;
+            old->before = nullptr;
+            old->after = nullptr;
+            old->prev = nullptr;
+            help = old->next;
+            old->next = nullptr;
+            old = nullptr;
+            old = help;
         }
     }
 
     void copy_map(const f_ptr& other_first, bool merge) {
         f_ptr act = other_first;
-        //std::cout << "copy map, use_count=" << map.use_count() << "\n";
-        //char a;
-        //std::cin >> a;
+        /*std::cout << "copy map, use_count=" << map.use_count() << "\n";
+        char a;
+        std::cin >> a;*/
 
         while (act != nullptr) {
             //std::cout << "-----" << act->key << "\n";
@@ -173,14 +175,13 @@ public:
     
     //wstawianie do słownika
     bool insert(K const &k, V const &v) {
-/*
-        std::cout << "insert " << k << "-" << v << " users: ";
-        std::cout << map.use_count() << "\n";
-*/
+
         if (map.use_count() > 1) {
             f_ptr other_first = first;
             map_ptr m(new f_ptr[capacity]);
             map = m;
+            first = nullptr;
+            last = nullptr;
             copy_map(other_first, false);
         }
           
@@ -254,6 +255,27 @@ public:
 
     //scalanie słowników
     void merge(insertion_ordered_map const &other) {
+        /*std::cout << "merge " << inside << "+" << other.inside << "\n";
+        print_map("me");
+
+        f_ptr help = other.first;
+
+        std::cout << "other: ";
+        while (help != nullptr) {
+            std::cout << help->key << "-" << help->value << "*";
+            help = help->next;
+        }
+        std::cout << "\n";
+*/
+        if (map.use_count() > 1) {
+
+            f_ptr other_first = first;
+            map_ptr m(new f_ptr[capacity]);
+            map = m;
+            first = nullptr;
+            last = nullptr;
+            copy_map(other_first, false);
+        }
         copy_map(other.first, true);
     }
 
