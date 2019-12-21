@@ -50,6 +50,31 @@ private:
         return nullptr;
     }
 
+    void clear_map() {
+        if (map == nullptr)
+            return;
+        for(size_t i=0; i<capacity; i++)
+            map[i] = nullptr;
+
+        map = nullptr;
+    }
+
+    void clear_all() {
+        clear_map();
+
+        f_ptr act = first, help = first;
+        first = nullptr;
+        last = nullptr;
+        inside = 0;
+
+        while (act != nullptr) {
+            help = act->next;
+            disconnect(act);
+            act = help;
+        }        
+    }
+
+
 
     //przesuwa pole na które wskazuje wskaźnik na koniec listy iteratora
     void move_to_end(f_ptr field_ptr) {
@@ -73,6 +98,9 @@ private:
     }
 
     void extend_map() {
+        for(size_t i=0; i<capacity; i++)
+            map[i] = nullptr;
+        
         f_ptr old = first;
         f_ptr help = old;
         inside = 0;
@@ -85,13 +113,9 @@ private:
         while (old != nullptr) {
             insert(old->mapping.first, old->mapping.second);
 
-            //nie dealokuję pamięci pod field, bo zrobi to shared_ptr
-            old->before = nullptr;
-            old->after = nullptr;
-            old->prev = nullptr;
+            //nie dealokuję pamięci pod field, bo zrobi to shared_ptr         
             help = old->next;
-            old->next = nullptr;
-            old = nullptr;
+            disconnect(old);
             old = help;
         }
     }
@@ -144,23 +168,6 @@ private:
         field_ptr->next = nullptr;
     }
 
-    void clear_all() {
-        for(size_t i=0; i<capacity; i++)
-            map[i] = nullptr;
-        // delete[] map;
-
-        f_ptr act = first, help = first;
-        first = nullptr;
-        last = nullptr;
-        inside = 0;
-
-        while (act != nullptr) {
-            help = act->next;
-            disconnect(act);
-            act = help;
-        }
-    }
-
 public:
 
     void print_map(std::string name) {
@@ -176,9 +183,7 @@ public:
 
     //konstruktor bezparametrowy - tworzy pusty słownik
     insertion_ordered_map()
-            : map(new f_ptr[16])
-            , sb_has_ref(false)
-            {}
+            : map(new f_ptr[16]) {}
 
     //konstruktor kopiujący z semantyką copy-on-write
     insertion_ordered_map(const insertion_ordered_map& other) {
@@ -348,11 +353,11 @@ public:
     bool empty() const {
         return inside == 0;
     }
-/*
+
     ~insertion_ordered_map() {
         clear_all();
     }
-*/
+
     //usuwanie wszystkiego ze słownika
     void clear() {
         clear_all();
