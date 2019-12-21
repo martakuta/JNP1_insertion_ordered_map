@@ -304,18 +304,6 @@ public:
         sb_has_ref = true;
         return found->mapping.second;
     }
-/*
-    V& operator[](const K& k) {
-        node_ptr n = findNode(k);
-        if (n == nullptr) {
-            insert(k, V());
-        } else {
-            checkSize();
-        }
-        n = findNode(k);
-        given_reference = true;
-        return n->val;
-    }*/
 
     V &operator[](K const &k) {
         copy_yourself_if_needed();
@@ -326,7 +314,6 @@ public:
             insert(k, V());
         }
         found = find(k);
-        //std::cout << "iom[" << k << "] = " << found->mapping.second << "\n";
         return found->mapping.second;
     }
 
