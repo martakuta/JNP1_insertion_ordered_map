@@ -52,9 +52,12 @@ private:
             return;
         f_ptr prev = field_ptr->prev;
         f_ptr next = field_ptr->next;
-        
+
         if (prev != nullptr)
             prev->next = next;
+        else
+            first = next;
+
         next->prev = prev;
 
         last->next = field_ptr;
@@ -67,8 +70,6 @@ private:
     
 
     void extend_map() {
-        //std::cout  << "I need to extend my map, it has already " << inside << "/" << capacity << "elements\n";
-
         f_ptr old = first;
         f_ptr help = old;
         inside = 0;
@@ -120,6 +121,19 @@ private:
         //insert has already set "first" and "last" fields
     }
 
+    void copy_yourself_if_needed() {
+        if (map.use_count() > 1) {
+            f_ptr other_first = first;
+            map_ptr m(new f_ptr[capacity]);
+            map = m;
+            first = nullptr;
+            last = nullptr;
+            inside = 0;
+            sb_has_ref = false;
+            copy_map(other_first, false);
+        }
+    }
+
 public:
 
     void print_map(std::string name) {
@@ -146,10 +160,11 @@ public:
         , sb_has_ref(false)
     {
         if (other.sb_has_ref) {
-            //std::shared_ptr<f_ptr[]> map(new f_ptr[capacity]);
-            map_ptr map(new f_ptr[capacity]);
+            map_ptr m(new f_ptr[capacity]);
+            map = m;
             copy_map(other.first, false);
-        } else {
+        }
+        else {
             map = other.map;
             first = other.first;
             last = other.last;
@@ -167,24 +182,29 @@ public:
     {
         other.map = nullptr;
     }
+
+    void swap(insertion_ordered_map& iom) noexcept
+    {
+        std::swap(this->map, iom.map);
+        std::swap(this->first, iom.first);
+        std::swap(this->last, iom.last);
+        std::swap(this->capacity, iom.capacity);
+        std::swap(this->inside, iom.inside);
+        std::swap(this->sb_has_ref, iom.sb_has_ref);
+    }
+
     //operator przypisania, przujmujący argument przez wartość
     insertion_ordered_map &operator=(insertion_ordered_map other) {
-        this = other;
+        insertion_ordered_map temp(other);
+        temp.swap(*this);
         return *this;
     }
     
     //wstawianie do słownika
     bool insert(K const &k, V const &v) {
 
-        if (map.use_count() > 1) {
-            f_ptr other_first = first;
-            map_ptr m(new f_ptr[capacity]);
-            map = m;
-            first = nullptr;
-            last = nullptr;
-            copy_map(other_first, false);
-        }
-          
+        copy_yourself_if_needed();
+
         f_ptr found = find(k);
         if(found != nullptr) {
             move_to_end(found);
@@ -255,27 +275,8 @@ public:
 
     //scalanie słowników
     void merge(insertion_ordered_map const &other) {
-        /*std::cout << "merge " << inside << "+" << other.inside << "\n";
-        print_map("me");
 
-        f_ptr help = other.first;
-
-        std::cout << "other: ";
-        while (help != nullptr) {
-            std::cout << help->key << "-" << help->value << "*";
-            help = help->next;
-        }
-        std::cout << "\n";
-*/
-        if (map.use_count() > 1) {
-
-            f_ptr other_first = first;
-            map_ptr m(new f_ptr[capacity]);
-            map = m;
-            first = nullptr;
-            last = nullptr;
-            copy_map(other_first, false);
-        }
+        copy_yourself_if_needed();
         copy_map(other.first, true);
     }
 
@@ -299,19 +300,30 @@ public:
         sb_has_ref = true;
         return found->value;
     }
+/*
+    V& operator[](const K& k) {
+        node_ptr n = findNode(k);
+        if (n == nullptr) {
+            insert(k, V());
+        } else {
+            checkSize();
+        }
+        n = findNode(k);
+        given_reference = true;
+        return n->val;
+    }*/
 
     V &operator[](K const &k) {
+        copy_yourself_if_needed();
         f_ptr found = find(k);
         sb_has_ref = true;
 
         if (found == nullptr) {
-            V* v = new V;
-            insert(k, *v);
-            return *v;
+            insert(k, V());
         }
-        else {
-            return found->value;
-        }
+        found = find(k);
+        //std::cout << "iom[" << k << "] = " << found->value << "\n";
+        return found->value;
     }
 
     //rozmiar słownika
