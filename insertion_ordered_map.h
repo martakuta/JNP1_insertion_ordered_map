@@ -88,12 +88,8 @@ private:
             insert(old->mapping.first, old->mapping.second);
 
             //nie dealokuję pamięci pod field, bo zrobi to shared_ptr
-            old->before = nullptr;
-            old->after = nullptr;
-            old->prev = nullptr;
             help = old->next;
-            old->next = nullptr;
-            old = nullptr;
+            disconnect(old);
             old = help;
         }
     }
