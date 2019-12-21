@@ -72,8 +72,7 @@ private:
     }
 
     void extend_map() {
-        for(size_t i=0; i<capacity; i++)
-            map[i] = nullptr;
+        clear_map();
 
         f_ptr old = first;
         f_ptr help = old;
