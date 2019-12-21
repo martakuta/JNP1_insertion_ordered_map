@@ -11,7 +11,7 @@ private:
      
     struct field;
     using f_ptr = std::shared_ptr<field>;
-    using tab_ptr = std::shared_ptr<f_ptr[]>;
+    using map_ptr = std::shared_ptr<f_ptr[]>;
 
     struct field {
         K key;
@@ -26,7 +26,7 @@ private:
 
     size_t capacity = 16;
     size_t inside = 0;
-    f_ptr* map;
+    map_ptr map;
     f_ptr first = nullptr;
     f_ptr last = nullptr;
     bool sb_has_ref;
@@ -71,8 +71,9 @@ private:
         first = nullptr;
         last = nullptr;
         inside = 0;
-        capacity = 2*capacity; 
-        map = new f_ptr[capacity];
+        capacity = 2*capacity;
+        map_ptr map(new f_ptr[capacity]);
+        //map = new f_ptr[capacity];
         //std::shared_ptr<f_ptr[]> map(new f_ptr[capacity]);
 
         while (act != nullptr) {
@@ -89,9 +90,11 @@ private:
         }
     }
 
-    void copy_map(const insertion_ordered_map& other, bool merge) {
-        f_ptr act = other.first;
-        //std::cout << "copy map, use_count=" << first.use_count() << "\n";
+    void copy_map(const f_ptr& other_first, bool merge) {
+        f_ptr act = other_first;
+        //std::cout << "copy map, use_count=" << map.use_count() << "\n";
+        //char a;
+        //std::cin >> a;
 
         while (act != nullptr) {
             //std::cout << "-----" << act->key << "\n";
@@ -117,6 +120,17 @@ private:
 
 public:
 
+    void print_map(std::string name) {
+        std::cout << name << ": ";
+        f_ptr act = first;
+
+        while (act != nullptr) {
+            std::cout << act->key << "-" << act->value << "*";
+            act = act->next;
+        }
+        std::cout << "\n";
+    }
+
     //konstruktor bezparametrowy - tworzy pusty słownik
     insertion_ordered_map()
         : map(new f_ptr[16])
@@ -130,8 +144,9 @@ public:
         , sb_has_ref(false)
     {
         if (other.sb_has_ref) {
-            std::shared_ptr<f_ptr[]> map(new f_ptr[capacity]);
-            copy_map(other, false);
+            //std::shared_ptr<f_ptr[]> map(new f_ptr[capacity]);
+            map_ptr map(new f_ptr[capacity]);
+            copy_map(other.first, false);
         } else {
             map = other.map;
             first = other.first;
@@ -158,14 +173,16 @@ public:
     
     //wstawianie do słownika
     bool insert(K const &k, V const &v) {
-
-        /*
-        //sprawdzenie czy ktos inny nie ma dostepu do naszych danych
-        if (inside == 0 || first.use_count() > 1) {
-            std::shared_ptr<f_ptr[]> map(new f_ptr[capacity]);
-            first = nullptr;
-            copy_map(*this, false);
-        }*/
+/*
+        std::cout << "insert " << k << "-" << v << " users: ";
+        std::cout << map.use_count() << "\n";
+*/
+        if (map.use_count() > 1) {
+            f_ptr other_first = first;
+            map_ptr m(new f_ptr[capacity]);
+            map = m;
+            copy_map(other_first, false);
+        }
           
         f_ptr found = find(k);
         if(found != nullptr) {
@@ -237,7 +254,7 @@ public:
 
     //scalanie słowników
     void merge(insertion_ordered_map const &other) {
-        copy_map(other, true);
+        copy_map(other.first, true);
     }
 
     //zwracanie referencji na wartość pod kluczem

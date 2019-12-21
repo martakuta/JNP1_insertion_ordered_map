@@ -14,7 +14,33 @@ int main()
 {
     insertion_ordered_map<int, int> iom = f({});
     insertion_ordered_map<int, int> iom2(iom);
-    //assert(iom.insert(1,1));
+    assert(iom.insert(2,12));
+    assert(iom.insert(1,11));
+    assert(iom2.insert(5,15));
+    assert(iom2.insert(1,13));
+    iom.merge(iom2); // iom: 1-11, 2-12, 3-0 + iom2: 1-13, 5-15
+    insertion_ordered_map<int, int> iom3 = {};
+    assert(iom3.insert(1,1));
+    //iom3.merge(iom); //iom3: 1-1, 12-0 + iom: 1-11, 2-12, 3-0, 5-15
+    insertion_ordered_map<int, int> iom4(iom3);
+
+    iom.print_map("iom");
+    iom2.print_map("iom2");
+    iom3.print_map("iom3");
+    iom4.print_map("iom4");
+
+    //insertion_ordered_map<int, int> iom5(std::move(iom4));
+    //iom5.print_map("iom5");
+    //iom4.print_map("iom4");
+
+    iom3.merge(iom);
+    iom.print_map("iom");
+    iom3.print_map("iom3");
+    iom4.print_map("iom4");
+
+    insertion_ordered_map<double, std::string> iom_napisy = {};
+    assert(iom_napisy.insert(1.5,"abrakadabra"));
+    std::cout << iom_napisy[1.5] << "*" << iom_napisy[3.14] << "*" << iom_napisy[1.5] << "*\n";
 
     /*
   int keys[] = {3, 1, 2};
